@@ -285,6 +285,7 @@ public class MypyRunner {
         if (mypyConfigService.isUseDaemon()) {
             cmd.addParameter("run");
             cmd.addParameter("--");
+            cmd.addParameter(".");
         }
 
         cmd.addParameter("--show-column-numbers");
@@ -299,9 +300,6 @@ public class MypyRunner {
         ParametersList parametersList = cmd.getParametersList();
         parametersList.addParametersString(mypyConfigService.getMypyArguments());
 
-        for (String file : filesToScan) {
-            cmd.addParameter(file);
-        }
         cmd.setWorkDirectory(project.getBasePath());
 
         LOG.debug("Command Line string: " + cmd.getCommandLineString());
