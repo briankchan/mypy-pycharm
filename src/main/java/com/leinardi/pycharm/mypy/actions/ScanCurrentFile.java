@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Roberto Leinardi.
+ * Copyright 2021 Roberto Leinardi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,7 +46,7 @@ public class ScanCurrentFile extends BaseAction {
 
         try {
             final MypyPlugin mypyPlugin
-                    = project.getComponent(MypyPlugin.class);
+                    = project.getService(MypyPlugin.class);
             if (mypyPlugin == null) {
                 throw new IllegalStateException("Couldn't get mypy plugin");
             }
@@ -59,7 +59,7 @@ public class ScanCurrentFile extends BaseAction {
 
                     final VirtualFile selectedFile = getSelectedFile(project);
                     if (selectedFile != null) {
-                        project.getComponent(MypyPlugin.class).asyncScanFiles(
+                        project.getService(MypyPlugin.class).asyncScanFiles(
                                 Collections.singletonList(selectedFile));
                     }
 
@@ -111,7 +111,7 @@ public class ScanCurrentFile extends BaseAction {
             }
 
             final MypyPlugin mypyPlugin
-                    = project.getComponent(MypyPlugin.class);
+                    = project.getService(MypyPlugin.class);
             if (mypyPlugin == null) {
                 throw new IllegalStateException("Couldn't get mypy plugin");
             }

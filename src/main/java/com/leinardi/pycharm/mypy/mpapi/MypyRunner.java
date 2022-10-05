@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Roberto Leinardi.
+ * Copyright 2021 Roberto Leinardi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,6 +38,7 @@ import com.leinardi.pycharm.mypy.exception.MypyToolException;
 import com.leinardi.pycharm.mypy.util.FileTypes;
 import com.leinardi.pycharm.mypy.util.Notifications;
 import org.jdesktop.swingx.util.OS;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
@@ -140,7 +141,7 @@ public class MypyRunner {
             VirtualFile mypyFile = LocalFileSystem.getInstance()
                     .findFileByPath(interpreterFile.getParent().getPath() + File.separator + MYPY_EXECUTABLE_NAME);
             if (mypyFile != null && mypyFile.exists()) {
-                return mypyFile.getPath();
+                return mypyFile.getPresentableUrl();
             }
         } else {
             return detectSystemMypyPath();
@@ -328,6 +329,7 @@ public class MypyRunner {
 
             //  process.waitFor();
             return parseMypyOutput(inputStream);
+
         } catch (InterruptedIOException e) {
             LOG.info("Command Line string: " + cmd.getCommandLineString());
             throw e;
@@ -340,7 +342,8 @@ public class MypyRunner {
         }
     }
 
-    private static List<Issue> parseMypyOutput(InputStream inputStream) throws IOException {
+    @NotNull
+    public static List<Issue> parseMypyOutput(@NotNull InputStream inputStream) throws IOException {
         ArrayList<Issue> issues = new ArrayList<>();
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, UTF_8));
         String rawLine;
@@ -353,8 +356,9 @@ public class MypyRunner {
                     String[] splitPosition = rawLine.substring(0, typeIndexStart - 1).split(":", -1);
                     String path = splitPosition[0].trim();
                     int line = splitPosition.length > 1 ? Integer.parseInt(splitPosition[1].trim()) : 1;
-                    int column = splitPosition.length > 2 ? Integer.parseInt(splitPosition[2].trim()) : 1;
-                    String[] splitError = rawLine.substring(typeIndexStart).split(":", -1);
+                    // Mypy uses 1-based column numbers, IntelliJ expects 0-based
+                    int column = splitPosition.length > 2 ? Integer.parseInt(splitPosition[2].trim()) - 1 : 1;
+                    String[] splitError = rawLine.substring(typeIndexStart).split(":", 2);
                     SeverityLevel severityLevel = SeverityLevel.valueOf(splitError[0].trim().toUpperCase());
                     String message = splitError[1].trim();
                     issues.add(new Issue(path, line, column, severityLevel, message));
