@@ -230,7 +230,7 @@ public class MypyRunner {
     public static List<Issue> scan(Project project, Set<String> filesToScan)
             throws InterruptedIOException, InterruptedException {
         if (!checkMypyAvailable(project, true)) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
         MypyConfigService mypyConfigService = MypyConfigService.getInstance(project);
         if (filesToScan.isEmpty()) {
@@ -269,7 +269,7 @@ public class MypyRunner {
                                        String mypyConfigFilePath, MypyConfigService mypyConfigService)
             throws InterruptedIOException, InterruptedException {
         if (filesToScan.isEmpty()) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
 
         if (mypyConfigService.isUseDaemon()) {
@@ -304,24 +304,27 @@ public class MypyRunner {
 
         LOG.debug("Command Line string: " + cmd.getCommandLineString());
         try {
-            final int retryLimit = 5;
-            InputStream inputStream = null;
-            for (int retryCount = 1; retryCount <= retryLimit; retryCount++) {
-                final Process process = cmd.createProcess();
-                inputStream = process.getInputStream();
+            final Process process = cmd.createProcess();
+            InputStream inputStream = process.getInputStream();
 
-                String error = new BufferedReader(new InputStreamReader(process.getErrorStream(), UTF_8))
-                        .lines().collect(Collectors.joining("\n"));
-                if (StringUtil.isEmpty(error)) {
-                    break;
+            List<Issue> issues = parseMypyOutput(inputStream);
+            process.waitFor();
+
+            int exitCode = process.exitValue();
+            if (exitCode != 0 && exitCode != 1) {
+                // Ideally, anything other than 0 or 1 should be an abnormal exit code,
+                // but there are still cases where Mypy returns 2 and still reports errors
+                // (e.g. syntax errors or "break" outside loop).
+                // See https://github.com/python/mypy/issues/6003.
+                if (issues.size() == 0) {
+                    InputStream errStream = process.getErrorStream();
+                    String detail = new BufferedReader(new InputStreamReader(errStream, UTF_8))
+                            .lines().collect(Collectors.joining("\n"));
+
+                    Notifications.showMypyAbnormalExit(project, detail);
+                    throw new MypyToolException("Mypy failed with code " + exitCode);
                 } else {
-                    LOG.info("Command Line string: " + cmd.getCommandLineString());
-                    // the daemon sometimes fails when idea invokes the inspection multiple times
-                    if (mypyConfigService.isUseDaemon() && error.equals("The connection is busy.")) {
-                        LOG.warn(error + " attempt #" + retryCount);
-                    } else {
-                        throw new MypyToolException("Error while running Mypy: " + error);
-                    }
+                    LOG.info("Mypy returned " + exitCode + ", but also reported issues");
                 }
             }
 

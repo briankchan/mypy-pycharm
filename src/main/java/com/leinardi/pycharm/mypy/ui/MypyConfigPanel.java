@@ -97,6 +97,7 @@ public class MypyConfigPanel {
 
     public boolean getUseDaemon() { return useDaemonCheckBox.isSelected(); }
 
+    @SuppressWarnings("unused")
     private void createUIComponents() {
         JBTextField autodetectTextField = new JBTextField();
         autodetectTextField.getEmptyText()
