@@ -87,7 +87,7 @@ public class ProcessResultsThread implements ThrowableRunnable<RuntimeException>
             final PsiFile psiFile = fileNamesToPsiFiles.get(filenameFrom(event));
             if (psiFile == null) {
                 LOG.info("Could not find mapping for file: " + event.getPath() + " in " + fileNamesToPsiFiles);
-                return;
+                continue;
             }
 
             List<Integer> lineLengthCache = lineLengthCachesByFile.get(psiFile);

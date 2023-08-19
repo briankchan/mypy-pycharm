@@ -285,9 +285,13 @@ public class MypyRunner {
         if (mypyConfigService.isUseDaemon()) {
             cmd.addParameter("run");
             cmd.addParameter("--");
-            cmd.addParameter(".");
+            cmd.addParameter("--cache-fine-grained");
+        } else {
+            cmd.addParameter("--follow-imports");
+            cmd.addParameter("silent");
         }
 
+        cmd.addParameter("--no-color-output");
         cmd.addParameter("--show-column-numbers");
 
         injectEnvironmentVariables(project, cmd);
@@ -299,6 +303,15 @@ public class MypyRunner {
 
         ParametersList parametersList = cmd.getParametersList();
         parametersList.addParametersString(mypyConfigService.getMypyArguments());
+
+        // daemon should always scan all files
+        if (mypyConfigService.isUseDaemon()) {
+            cmd.addParameter(".");
+        } else {
+            for (String file : filesToScan) {
+                cmd.addParameter(file);
+            }
+        }
 
         cmd.setWorkDirectory(project.getBasePath());
 
@@ -328,8 +341,7 @@ public class MypyRunner {
                 }
             }
 
-            //  process.waitFor();
-            return parseMypyOutput(inputStream);
+            return issues;
 
         } catch (InterruptedIOException e) {
             LOG.info("Command Line string: " + cmd.getCommandLineString());
@@ -350,6 +362,7 @@ public class MypyRunner {
         String rawLine;
         Pattern typePattern = Pattern.compile(TYPE_RE);
         while ((rawLine = bufferedReader.readLine()) != null) {
+            LOG.debug(rawLine);
             if (rawLine.matches(ISSUE_RE)) {
                 Matcher matcher = typePattern.matcher(rawLine);
                 if (matcher.find()) {
@@ -361,7 +374,7 @@ public class MypyRunner {
                     int column = splitPosition.length > 2 ? Integer.parseInt(splitPosition[2].trim()) - 1 : 1;
                     String[] splitError = rawLine.substring(typeIndexStart).split(":", 2);
                     SeverityLevel severityLevel = SeverityLevel.valueOf(splitError[0].trim().toUpperCase());
-                    String message = splitError[1].trim();
+                    String message = splitError[1];
                     issues.add(new Issue(path, line, column, severityLevel, message));
                 }
             }
